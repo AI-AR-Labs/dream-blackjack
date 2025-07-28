@@ -1,0 +1,135 @@
+name: AI Development Workflow
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to work on'
+        required: true
+        type: number
+
+jobs:
+  ai-development:
+    if: github.event.label.name == 'ai-ready' || github.event_name == 'workflow_dispatch'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Extract Issue Details
+        id: issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue?.number || context.payload.inputs.issue_number
+            });
+            
+            // Extract acceptance criteria from issue body
+            const body = issue.data.body;
+            const criteriaMatch = body.match(/## Acceptance Criteria\n([\s\S]*?)(?=\n##|$)/);
+            const criteria = criteriaMatch ? criteriaMatch[1].trim() : '';
+            
+            // Save to file for Claude Code
+            const fs = require('fs');
+            fs.writeFileSync('issue-context.txt', `Issue #${issue.data.number}: ${issue.data.title}\n\n${body}`);
+            fs.writeFileSync('acceptance-criteria.txt', criteria);
+            
+            core.setOutput('criteria', criteria);
+            core.setOutput('issue_number', issue.data.number);
+            return criteria;
+          
+      - name: Create Feature Branch
+        run: |
+          BRANCH_NAME="feature/issue-${{ steps.issue.outputs.issue_number }}"
+          git checkout -b $BRANCH_NAME
+          
+      - name: Generate Tests with Claude Code
+        run: |
+          # Create prompt for test generation
+          cat > generate-tests-prompt.txt << 'EOF'
+          Read the acceptance criteria from acceptance-criteria.txt and generate comprehensive tests for each criterion.
+          
+          Follow these guidelines:
+          1. Create a new test file in the tests/ directory
+          2. Each acceptance criterion should have at least one test
+          3. Tests should fail initially (since no implementation exists yet)
+          4. Use descriptive test names
+          5. Follow the existing test patterns in the codebase
+          
+          The tests should be thorough and cover edge cases.
+          EOF
+          
+          # Run Claude Code to generate tests
+          claude-code --prompt-file generate-tests-prompt.txt
+          
+      - name: Implement Feature with Claude Code
+        run: |
+          # Create prompt for implementation
+          cat > implement-feature-prompt.txt << 'EOF'
+          Implement the feature to make all tests pass. Follow these steps:
+          
+          1. Run npm test to see which tests are failing
+          2. Implement the minimal code needed to make tests pass
+          3. Run tests again to verify
+          4. Repeat until all tests pass
+          5. Ensure code follows project conventions in CLAUDE.md
+          6. Do not modify the tests unless they have errors
+          
+          Keep running tests and fixing issues until all tests pass.
+          EOF
+          
+          # Run Claude Code to implement the feature
+          claude-code --prompt-file implement-feature-prompt.txt
+          
+      - name: Run Final Tests
+        run: npm test
+        
+      - name: Generate Test Report
+        if: always()
+        run: npm run test:coverage -- --json --outputFile=test-results.json
+        
+      - name: Commit Changes
+        run: |
+          git config --local user.email "claude-code[bot]@users.noreply.github.com"
+          git config --local user.name "claude-code[bot]"
+          git add -A
+          git commit -m "Implement feature for issue #${{ steps.issue.outputs.issue_number }}"
+          
+      - name: Push Changes
+        run: |
+          git push https://x-access-token:${{ secrets.BOT_TOKEN }}@github.com/${{ github.repository }}.git "feature/issue-${{ steps.issue.outputs.issue_number }}"
+          
+      - name: Deploy to Dev Environment
+        id: deploy
+        run: |
+          # Deploy to dev environment and get URL
+          echo "deployment_url=https://dev-${{ steps.issue.outputs.issue_number }}.example.com" >> $GITHUB_OUTPUT
+          
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
+          branch: "feature/issue-${{ steps.issue.outputs.issue_number }}"
+          title: "Implement feature for issue #${{ steps.issue.outputs.issue_number }}"
+          body: |
+            ## Summary
+            Implemented feature as requested in issue #${{ steps.issue.outputs.issue_number }}
+            
+            ## Test Results
+            All tests passing ✅
+            [View test report](./test-results.json)
+            
+            ## Deployment
+            🚀 [Dev deployment](${{ steps.deploy.outputs.deployment_url }})
+            
+            ## Acceptance Criteria
+            ${{ steps.issue.outputs.criteria }}
+            
+            ---
+            *This PR was automatically generated by Claude Code*
