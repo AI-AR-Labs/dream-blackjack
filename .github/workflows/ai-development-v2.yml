@@ -146,8 +146,11 @@ jobs:
           # Calculate port based on issue number (3000 + issue number)
           PORT=$((3000 + ${{ steps.issue.outputs.issue_number }}))
           
-          # Kill any existing process on this port
+          # Kill any existing processes on this port
           lsof -ti:$PORT | xargs kill -9 2>/dev/null || true
+          
+          # Kill any existing ngrok for this issue
+          pkill -f "ngrok.*issue-${{ steps.issue.outputs.issue_number }}" || true
           
           # Start the application in background
           nohup npm start -- --port=$PORT > /tmp/app-issue-${{ steps.issue.outputs.issue_number }}.log 2>&1 &
@@ -159,11 +162,34 @@ jobs:
           # Wait for app to start
           sleep 5
           
-          # Get the public URL (you can use ngrok, or just the local URL if accessible)
-          DEPLOYMENT_URL="http://$(hostname -I | awk '{print $1}'):$PORT"
+          # Check if ngrok is installed
+          if ! command -v ngrok &> /dev/null; then
+            echo "ngrok not found. Installing..."
+            curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+            echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+            sudo apt update && sudo apt install ngrok -y
+          fi
+          
+          # Start ngrok in background
+          nohup ngrok http $PORT --log=stdout --log-level=info > /tmp/ngrok-issue-${{ steps.issue.outputs.issue_number }}.log 2>&1 &
+          NGROK_PID=$!
+          echo $NGROK_PID > /tmp/ngrok-issue-${{ steps.issue.outputs.issue_number }}.pid
+          
+          # Wait for ngrok to start
+          sleep 3
+          
+          # Get ngrok public URL from API
+          NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' | sed 's/^http:/https:/')
+          
+          if [ "$NGROK_URL" = "null" ] || [ -z "$NGROK_URL" ]; then
+            echo "Failed to get ngrok URL, falling back to local URL"
+            DEPLOYMENT_URL="http://$(hostname -I | awk '{print $1}'):$PORT"
+          else
+            DEPLOYMENT_URL="$NGROK_URL"
+          fi
           
           echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "Deployed to $DEPLOYMENT_URL (PID: $APP_PID)"
+          echo "Deployed to $DEPLOYMENT_URL (App PID: $APP_PID, Ngrok PID: $NGROK_PID)"
           
       - name: Create Pull Request
         env:

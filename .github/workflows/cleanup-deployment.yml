@@ -32,23 +32,28 @@ jobs:
         if: steps.extract.outputs.issue_number
         run: |
           ISSUE_NUMBER=${{ steps.extract.outputs.issue_number }}
-          PID_FILE="/tmp/app-issue-${ISSUE_NUMBER}.pid"
+          APP_PID_FILE="/tmp/app-issue-${ISSUE_NUMBER}.pid"
+          NGROK_PID_FILE="/tmp/ngrok-issue-${ISSUE_NUMBER}.pid"
           
-          if [ -f "$PID_FILE" ]; then
-            PID=$(cat "$PID_FILE")
-            echo "Stopping deployment for issue #${ISSUE_NUMBER} (PID: $PID)"
-            
-            # Kill the process
+          # Stop the app
+          if [ -f "$APP_PID_FILE" ]; then
+            PID=$(cat "$APP_PID_FILE")
+            echo "Stopping app for issue #${ISSUE_NUMBER} (PID: $PID)"
             kill -9 $PID 2>/dev/null || true
-            
-            # Clean up files
-            rm -f "$PID_FILE"
+            rm -f "$APP_PID_FILE"
             rm -f "/tmp/app-issue-${ISSUE_NUMBER}.log"
-            
-            echo "Deployment cleaned up"
-          else
-            echo "No deployment found for issue #${ISSUE_NUMBER}"
           fi
+          
+          # Stop ngrok
+          if [ -f "$NGROK_PID_FILE" ]; then
+            PID=$(cat "$NGROK_PID_FILE")
+            echo "Stopping ngrok for issue #${ISSUE_NUMBER} (PID: $PID)"
+            kill -9 $PID 2>/dev/null || true
+            rm -f "$NGROK_PID_FILE"
+            rm -f "/tmp/ngrok-issue-${ISSUE_NUMBER}.log"
+          fi
+          
+          echo "Deployment cleaned up"
           
       - name: Comment on PR
         if: steps.extract.outputs.issue_number
