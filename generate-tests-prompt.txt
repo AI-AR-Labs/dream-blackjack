@@ -1,0 +1,10 @@
+Read the acceptance criteria from acceptance-criteria.txt and generate comprehensive tests for each criterion.
+
+Follow these guidelines:
+1. Create a new test file in the tests/ directory
+2. Each acceptance criterion should have at least one test
+3. Tests should fail initially (since no implementation exists yet)
+4. Use descriptive test names
+5. Follow the existing test patterns in the codebase
+
+The tests should be thorough and cover edge cases.
