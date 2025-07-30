@@ -1,0 +1,39 @@
+Generate comprehensive tests for the following acceptance criteria:
+
+a get endpoint that returns hello world
+
+IMPORTANT: You MUST create actual test files, not just describe them.
+
+Follow these guidelines:
+1. Create a new test file at tests/feature.test.js (or appropriate extension)
+2. Each acceptance criterion should have at least one test
+3. Tests should fail initially (since no implementation exists yet)
+4. Use descriptive test names
+5. Look at existing test files in the tests/ directory for patterns
+
+Current directory structure:
+total 280
+drwxr-xr-x   8 jkrantz jkrantz   4096 Jul 30 19:59 .
+drwxr-xr-x   3 jkrantz jkrantz   4096 Jul 30 15:34 ..
+drwxr-xr-x   8 jkrantz jkrantz   4096 Jul 30 19:59 .git
+drwxr-xr-x   4 jkrantz jkrantz   4096 Jul 30 19:59 .github
+-rw-r--r--   1 jkrantz jkrantz     95 Jul 30 19:59 .gitignore
+-rw-r--r--   1 jkrantz jkrantz   1950 Jul 30 19:59 CLAUDE.md
+-rw-r--r--   1 jkrantz jkrantz   3131 Jul 30 19:59 README.md
+-rw-r--r--   1 jkrantz jkrantz     40 Jul 30 19:59 acceptance-criteria.txt
+-rw-r--r--   1 jkrantz jkrantz      0 Jul 30 19:59 generate-tests-prompt.txt
+-rw-r--r--   1 jkrantz jkrantz    136 Jul 30 19:59 issue-context.txt
+-rw-r--r--   1 jkrantz jkrantz    267 Jul 30 19:59 jest.config.js
+drwxr-xr-x 327 jkrantz jkrantz  12288 Jul 30 19:59 node_modules
+-rw-r--r--   1 jkrantz jkrantz 202343 Jul 30 19:59 package-lock.json
+-rw-r--r--   1 jkrantz jkrantz    553 Jul 30 19:59 package.json
+drwxr-xr-x   2 jkrantz jkrantz   4096 Jul 30 19:59 scripts
+drwxr-xr-x   2 jkrantz jkrantz   4096 Jul 30 19:59 src
+-rwxr-xr-x   1 jkrantz jkrantz   4749 Jul 30 19:59 test-bot-token.js
+-rwxr-xr-x   1 jkrantz jkrantz   1416 Jul 30 19:59 test-push.sh
+drwxr-xr-x   2 jkrantz jkrantz   4096 Jul 30 19:59 tests
+
+Existing test files:
+tests/example.test.js
+
+Write the complete test file(s) needed.

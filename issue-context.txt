@@ -1,0 +1,6 @@
+Issue #16: [FEATURE] hello world
+
+## Feature Description
+greet the world
+## Acceptance Criteria
+a get endpoint that returns hello world
