@@ -1,0 +1,10 @@
+Implement the feature to make all tests pass. Follow these steps:
+
+1. Run npm test to see which tests are failing
+2. Implement the minimal code needed to make tests pass
+3. Run tests again to verify
+4. Repeat until all tests pass
+5. Ensure code follows project conventions in CLAUDE.md
+6. Do not modify the tests unless they have errors
+
+Keep running tests and fixing issues until all tests pass.
