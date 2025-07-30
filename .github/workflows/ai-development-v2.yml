@@ -62,24 +62,28 @@ jobs:
           # Get acceptance criteria
           CRITERIA=$(cat acceptance-criteria.txt)
           
-          # Get existing test examples
-          EXAMPLE_TEST=""
+          # Build the prompt
+          PROMPT="Generate comprehensive tests for the following acceptance criteria:
+
+          ${CRITERIA}
+
+          Create a new test file at tests/feature.test.js that tests this functionality.
+          The tests should fail initially since no implementation exists yet."
+          
+          # Add example test if it exists
           if [ -f "tests/example.test.js" ]; then
-            EXAMPLE_TEST="Here's an example test file for reference:
-$(cat tests/example.test.js)"
+            PROMPT="${PROMPT}
+
+          Here's an example test file for reference:
+          $(cat tests/example.test.js)"
           fi
           
+          PROMPT="${PROMPT}
+
+          IMPORTANT: Use the Write tool to create the test file. Don't just output the code, actually create the file at tests/feature.test.js"
+          
           # Run Claude to generate tests
-          claude --dangerously-skip-permissions "Generate comprehensive tests for the following acceptance criteria:
-
-${CRITERIA}
-
-Create a new test file at tests/feature.test.js that tests this functionality.
-The tests should fail initially since no implementation exists yet.
-
-${EXAMPLE_TEST}
-
-IMPORTANT: Use the Write tool to create the test file. Don't just output the code, actually create the file at tests/feature.test.js"
+          claude --dangerously-skip-permissions "$PROMPT"
           
       - name: Implement Feature with Claude
         run: |
@@ -87,29 +91,33 @@ IMPORTANT: Use the Write tool to create the test file. Don't just output the cod
           CRITERIA=$(cat acceptance-criteria.txt)
           TEST_OUTPUT=$(npm test 2>&1 || true)
           
-          # Get current source files
-          CURRENT_SRC=""
+          # Build the prompt
+          PROMPT="Implement the feature to make all tests pass.
+
+          Acceptance criteria:
+          ${CRITERIA}
+
+          Current test output:
+          ${TEST_OUTPUT}"
+          
+          # Add current source if exists
           if [ -f "src/index.js" ]; then
-            CURRENT_SRC="Current src/index.js:
-$(cat src/index.js)"
+            PROMPT="${PROMPT}
+
+          Current src/index.js:
+          $(cat src/index.js)"
           fi
           
+          PROMPT="${PROMPT}
+
+          Analyze the failing tests and implement the minimal code needed to make them pass.
+          Use the Edit or Write tool to modify src/index.js or create new files as needed.
+          Follow the project conventions in CLAUDE.md.
+
+          IMPORTANT: Use the Edit/Write tools to actually modify the files. Don't just output code."
+          
           # Run Claude to implement the feature
-          claude --dangerously-skip-permissions "Implement the feature to make all tests pass.
-
-Acceptance criteria:
-${CRITERIA}
-
-Current test output:
-${TEST_OUTPUT}
-
-${CURRENT_SRC}
-
-Analyze the failing tests and implement the minimal code needed to make them pass.
-Use the Edit or Write tool to modify src/index.js or create new files as needed.
-Follow the project conventions in CLAUDE.md.
-
-IMPORTANT: Use the Edit/Write tools to actually modify the files. Don't just output code."
+          claude --dangerously-skip-permissions "$PROMPT"
           
       - name: Run Final Tests
         run: npm test
