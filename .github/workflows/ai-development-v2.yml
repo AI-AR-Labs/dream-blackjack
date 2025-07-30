@@ -127,7 +127,8 @@ jobs:
           
       - name: Push Changes
         run: |
-          git push https://x-access-token:${{ secrets.BOT_TOKEN }}@github.com/${{ github.repository }}.git "feature/issue-${{ steps.issue.outputs.issue_number }}"
+          git remote set-url origin https://robottonik:${{ secrets.BOT_TOKEN }}@github.com/${{ github.repository }}.git
+          git push origin "feature/issue-${{ steps.issue.outputs.issue_number }}"
           
       - name: Deploy to Dev Environment
         id: deploy
