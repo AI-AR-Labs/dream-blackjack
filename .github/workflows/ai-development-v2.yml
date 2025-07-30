@@ -40,29 +40,33 @@ jobs:
       
       - name: Extract Issue Details
         id: issue
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.BOT_TOKEN }}
-          script: |
-            const issue = await github.rest.issues.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.issue?.number || context.payload.inputs.issue_number
-            });
-            
-            // Extract acceptance criteria from issue body
-            const body = issue.data.body;
-            const criteriaMatch = body.match(/## Acceptance Criteria\n([\s\S]*?)(?=\n##|$)/);
-            const criteria = criteriaMatch ? criteriaMatch[1].trim() : '';
-            
-            // Save to file for Claude Code
-            const fs = require('fs');
-            fs.writeFileSync('issue-context.txt', `Issue #${issue.data.number}: ${issue.data.title}\n\n${body}`);
-            fs.writeFileSync('acceptance-criteria.txt', criteria);
-            
-            core.setOutput('criteria', criteria);
-            core.setOutput('issue_number', issue.data.number);
-            return criteria;
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.inputs.issue_number }}
+        run: |
+          # Use direct API call with BOT_TOKEN
+          RESPONSE=$(curl -s -H "Authorization: token $BOT_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE_NUMBER")
+          
+          # Extract issue data
+          ISSUE_TITLE=$(echo "$RESPONSE" | jq -r '.title')
+          ISSUE_BODY=$(echo "$RESPONSE" | jq -r '.body')
+          
+          # Extract acceptance criteria
+          CRITERIA=$(echo "$ISSUE_BODY" | awk '/## Acceptance Criteria/{flag=1; next} /^##/{flag=0} flag')
+          
+          # Save to files
+          echo "Issue #$ISSUE_NUMBER: $ISSUE_TITLE" > issue-context.txt
+          echo "" >> issue-context.txt
+          echo "$ISSUE_BODY" >> issue-context.txt
+          echo "$CRITERIA" > acceptance-criteria.txt
+          
+          # Set outputs
+          echo "criteria<<EOF" >> $GITHUB_OUTPUT
+          echo "$CRITERIA" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
           
       - name: Create Feature Branch
         run: |
