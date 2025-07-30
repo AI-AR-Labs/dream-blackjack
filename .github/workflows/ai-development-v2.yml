@@ -16,8 +16,6 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.BOT_TOKEN }}
       
       - name: Install Node dependencies
         run: npm ci
@@ -128,7 +126,13 @@ jobs:
           git commit -m "Implement feature for issue #${{ steps.issue.outputs.issue_number }}"
           
       - name: Push Changes
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
+          # Configure the remote URL with authentication (exactly like the local test)
+          git remote set-url origin https://robottonik:${BOT_TOKEN}@github.com/${{ github.repository }}.git
+          
+          # Push the branch
           git push origin "feature/issue-${{ steps.issue.outputs.issue_number }}"
           
       - name: Deploy to Dev Environment
