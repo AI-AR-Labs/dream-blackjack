@@ -1,14 +1,8 @@
 module.exports = {
-  testEnvironment: 'node',
-  coverageDirectory: 'coverage',
-  collectCoverageFrom: [
-    'src/**/*.js',
-    '!src/**/*.test.js'
-  ],
-  testMatch: [
-    '**/tests/**/*.test.js',
-    '**/src/**/*.test.js'
-  ],
+  testEnvironment: "node",
+  coverageDirectory: "coverage",
+  collectCoverageFrom: ["src/**/*.js", "!src/**/*.test.js"],
+  testMatch: ["**/tests/**/*.test.js", "**/src/**/*.test.js"],
   verbose: true,
-  testTimeout: 30000
+  testTimeout: 30000,
 };

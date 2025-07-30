@@ -1,0 +1,8 @@
+This only needs to be a UI, no functionality yet.
+The ui should have:
+1. the player, with a place holder chip count
+2. two player cards face up
+3. the player bet amount
+4. a dealer
+5. two dealer cards. one face up, one face down.
+6. a hit/stand/double/split button

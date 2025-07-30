@@ -1,6 +1,7 @@
 # Claude Code Rules for AI-Driven Development
 
 ## Project Overview
+
 This is an AI-driven development project where features are implemented based on GitHub issues with acceptance criteria.
 
 ## Development Workflow
@@ -35,6 +36,7 @@ This is an AI-driven development project where features are implemented based on
 ## Implementation Process
 
 When implementing a feature:
+
 1. Read the acceptance criteria from the GitHub issue
 2. Generate comprehensive tests covering all criteria
 3. Implement the minimal code to make tests pass

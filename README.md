@@ -28,20 +28,26 @@ This skeleton project enables an AI-driven development workflow using GitHub Iss
 ## How It Works
 
 ### 1. Create an Issue
+
 Use the "Feature Request" template to create an issue with:
+
 - Clear feature description
 - Specific acceptance criteria in testable format
 - Add the `ai-ready` label when ready for implementation
 
 ### 2. Automated Workflow
+
 The GitHub Action will:
+
 - Extract acceptance criteria from the issue
 - Generate comprehensive tests
 - Run Claude Code to implement the feature
 - Create a PR with all validations
 
 ### 3. Review and Merge
+
 Each PR includes:
+
 - Link to dev deployment
 - Test coverage report
 - Video demonstration (when applicable)
@@ -80,6 +86,7 @@ You can test the workflow locally using Claude Code:
 ```
 
 This will:
+
 1. Generate tests based on your criteria
 2. Implement the feature to pass all tests
 3. Run the final test suite
@@ -88,6 +95,7 @@ This will:
 
 ```markdown
 ## Acceptance Criteria
+
 - [ ] Given a user visits /api/health, when the server is running, then return { status: "ok" }
 - [ ] The endpoint should respond within 100ms
 - [ ] Error handling: When database is down, return { status: "error", message: "..." }
