@@ -22,24 +22,6 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
       
-      - name: Debug Environment
-        run: |
-          echo "BOT_TOKEN exists: ${{ secrets.BOT_TOKEN != '' }}"
-          echo "GITHUB_TOKEN: ${{ github.token != '' }}"
-          echo "Workflow triggered by: ${{ github.actor }}"
-          echo "Repository: ${{ github.repository }}"
-      
-      - name: Debug Token Permissions
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        run: |
-          echo "Testing BOT_TOKEN..."
-          if [ -z "$BOT_TOKEN" ]; then
-            echo "ERROR: BOT_TOKEN is empty!"
-          else
-            echo "BOT_TOKEN is set (length: ${#BOT_TOKEN})"
-          fi
-      
       - name: Extract Issue Details
         id: issue
         env:
@@ -77,69 +59,57 @@ jobs:
           
       - name: Generate Tests with Claude
         run: |
-          # Create prompt for test generation
+          # Get acceptance criteria
           CRITERIA=$(cat acceptance-criteria.txt)
           
-          cat > generate-tests-prompt.txt << EOF
-          Generate comprehensive tests for the following acceptance criteria:
-          
-          ${CRITERIA}
-          
-          IMPORTANT: You MUST create actual test files, not just describe them.
-          
-          Follow these guidelines:
-          1. Create a new test file at tests/feature.test.js (or appropriate extension)
-          2. Each acceptance criterion should have at least one test
-          3. Tests should fail initially (since no implementation exists yet)
-          4. Use descriptive test names
-          5. Look at existing test files in the tests/ directory for patterns
-          
-          Current directory structure:
-          $(ls -la)
-          
-          Existing test files:
-          $(find tests -name "*.test.*" -type f 2>/dev/null || echo "No test files found")
-          
-          Write the complete test file(s) needed.
-          EOF
+          # Get existing test examples
+          EXAMPLE_TEST=""
+          if [ -f "tests/example.test.js" ]; then
+            EXAMPLE_TEST="Here's an example test file for reference:
+$(cat tests/example.test.js)"
+          fi
           
           # Run Claude to generate tests
-          claude < generate-tests-prompt.txt
+          claude --dangerously-skip-permissions "Generate comprehensive tests for the following acceptance criteria:
+
+${CRITERIA}
+
+Create a new test file at tests/feature.test.js that tests this functionality.
+The tests should fail initially since no implementation exists yet.
+
+${EXAMPLE_TEST}
+
+IMPORTANT: Use the Write tool to create the test file. Don't just output the code, actually create the file at tests/feature.test.js"
           
       - name: Implement Feature with Claude
         run: |
-          # Create prompt for implementation
+          # Get acceptance criteria and test output
           CRITERIA=$(cat acceptance-criteria.txt)
           TEST_OUTPUT=$(npm test 2>&1 || true)
           
-          cat > implement-feature-prompt.txt << EOF
-          Implement the feature to make all tests pass.
-          
-          Acceptance criteria:
-          ${CRITERIA}
-          
-          Current test output:
-          ${TEST_OUTPUT}
-          
-          IMPORTANT: You MUST create/edit actual code files to implement the feature.
-          
-          Follow these steps:
-          1. Analyze the failing tests
-          2. Implement the minimal code needed to make tests pass
-          3. Create or modify files in the src/ directory as needed
-          4. Ensure code follows project conventions in CLAUDE.md
-          
-          Current directory structure:
-          $(ls -la)
-          
-          Source files:
-          $(find src -type f 2>/dev/null | head -20 || echo "No src files found")
-          
-          Write the complete implementation needed to pass the tests.
-          EOF
+          # Get current source files
+          CURRENT_SRC=""
+          if [ -f "src/index.js" ]; then
+            CURRENT_SRC="Current src/index.js:
+$(cat src/index.js)"
+          fi
           
           # Run Claude to implement the feature
-          claude < implement-feature-prompt.txt
+          claude --dangerously-skip-permissions "Implement the feature to make all tests pass.
+
+Acceptance criteria:
+${CRITERIA}
+
+Current test output:
+${TEST_OUTPUT}
+
+${CURRENT_SRC}
+
+Analyze the failing tests and implement the minimal code needed to make them pass.
+Use the Edit or Write tool to modify src/index.js or create new files as needed.
+Follow the project conventions in CLAUDE.md.
+
+IMPORTANT: Use the Edit/Write tools to actually modify the files. Don't just output code."
           
       - name: Run Final Tests
         run: npm test
