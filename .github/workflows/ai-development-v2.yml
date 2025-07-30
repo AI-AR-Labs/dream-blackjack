@@ -20,25 +20,23 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
       
+      - name: Debug Environment
+        run: |
+          echo "BOT_TOKEN exists: ${{ secrets.BOT_TOKEN != '' }}"
+          echo "GITHUB_TOKEN: ${{ github.token != '' }}"
+          echo "Workflow triggered by: ${{ github.actor }}"
+          echo "Repository: ${{ github.repository }}"
+      
       - name: Debug Token Permissions
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.BOT_TOKEN }}
-          script: |
-            try {
-              const { data: user } = await github.rest.users.getAuthenticated();
-              console.log('Token authenticated as:', user.login);
-              console.log('Token scopes:', github.request.headers.authorization ? 'Using token' : 'No token');
-              
-              // Try to read the repo
-              const { data: repo } = await github.rest.repos.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo
-              });
-              console.log('Can access repo:', repo.full_name);
-            } catch (error) {
-              console.error('Token debug error:', error.message);
-            }
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          echo "Testing BOT_TOKEN..."
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "ERROR: BOT_TOKEN is empty!"
+          else
+            echo "BOT_TOKEN is set (length: ${#BOT_TOKEN})"
+          fi
       
       - name: Extract Issue Details
         id: issue
