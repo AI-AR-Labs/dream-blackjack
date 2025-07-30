@@ -8,6 +8,10 @@ app.get('/', (req, res) => {
   res.json({ message: 'Dream Skeleton API' });
 });
 
+app.get('/hello', (req, res) => {
+  res.json({ message: 'hello world' });
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
