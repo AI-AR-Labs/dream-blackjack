@@ -165,9 +165,15 @@ jobs:
           # Check if ngrok is installed
           if ! command -v ngrok &> /dev/null; then
             echo "ngrok not found. Installing..."
-            curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-            echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-            sudo apt update && sudo apt install ngrok -y
+            # Download and install ngrok directly
+            wget -q https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
+            sudo tar xvzf ngrok-v3-stable-linux-amd64.tgz -C /usr/local/bin
+            rm ngrok-v3-stable-linux-amd64.tgz
+            
+            # Add auth token if available
+            if [ -n "${{ secrets.NGROK_AUTHTOKEN }}" ]; then
+              ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
+            fi
           fi
           
           # Start ngrok in background
@@ -179,11 +185,15 @@ jobs:
           sleep 3
           
           # Get ngrok public URL from API
-          NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' | sed 's/^http:/https:/')
+          NGROK_URL=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null | jq -r '.tunnels[0].public_url' 2>/dev/null | sed 's/^http:/https:/')
           
           if [ "$NGROK_URL" = "null" ] || [ -z "$NGROK_URL" ]; then
-            echo "Failed to get ngrok URL, falling back to local URL"
+            echo "Failed to get ngrok URL. Checking logs..."
+            tail -5 /tmp/ngrok-issue-${{ steps.issue.outputs.issue_number }}.log || true
+            
+            # Fallback to local URL
             DEPLOYMENT_URL="http://$(hostname -I | awk '{print $1}'):$PORT"
+            echo "⚠️ Using local URL. To use ngrok, add NGROK_AUTHTOKEN to repository secrets."
           else
             DEPLOYMENT_URL="$NGROK_URL"
           fi

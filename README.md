@@ -18,8 +18,12 @@ This skeleton project enables an AI-driven development workflow using GitHub Iss
    - Create a new GitHub account for your bot
    - Generate a Personal Access Token with `repo` and `workflow` permissions
    - Add it as a secret named `BOT_TOKEN` in your repository settings
-4. Install dependencies: `npm install`
-5. Start creating issues with the provided template!
+4. (Optional) For public deployment URLs with ngrok:
+   - Sign up for a free ngrok account at https://ngrok.com
+   - Get your auth token from https://dashboard.ngrok.com/get-started/your-authtoken
+   - Add it as a secret named `NGROK_AUTHTOKEN` in your repository settings
+5. Install dependencies: `npm install`
+6. Start creating issues with the provided template!
 
 ## How It Works
 
