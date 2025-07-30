@@ -143,8 +143,27 @@ jobs:
       - name: Deploy to Dev Environment
         id: deploy
         run: |
-          # Deploy to dev environment and get URL
-          echo "deployment_url=https://dev-${{ steps.issue.outputs.issue_number }}.example.com" >> $GITHUB_OUTPUT
+          # Calculate port based on issue number (3000 + issue number)
+          PORT=$((3000 + ${{ steps.issue.outputs.issue_number }}))
+          
+          # Kill any existing process on this port
+          lsof -ti:$PORT | xargs kill -9 2>/dev/null || true
+          
+          # Start the application in background
+          nohup npm start -- --port=$PORT > /tmp/app-issue-${{ steps.issue.outputs.issue_number }}.log 2>&1 &
+          APP_PID=$!
+          
+          # Save PID for cleanup
+          echo $APP_PID > /tmp/app-issue-${{ steps.issue.outputs.issue_number }}.pid
+          
+          # Wait for app to start
+          sleep 5
+          
+          # Get the public URL (you can use ngrok, or just the local URL if accessible)
+          DEPLOYMENT_URL="http://$(hostname -I | awk '{print $1}'):$PORT"
+          
+          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to $DEPLOYMENT_URL (PID: $APP_PID)"
           
       - name: Create Pull Request
         env:
@@ -171,7 +190,7 @@ jobs:
           )
           
           # Create the PR
-          curl -X POST \
+          PR_RESPONSE=$(curl -X POST \
             -H "Authorization: token ${BOT_TOKEN}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/pulls \
@@ -183,3 +202,17 @@ jobs:
             "base": "master"
           }
           EOF
+          )
+          
+          # Extract PR number
+          PR_NUMBER=$(echo "$PR_RESPONSE" | jq -r '.number')
+          echo "Created PR #${PR_NUMBER}"
+          
+          # Add deployment info as comment
+          if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+            curl -X POST \
+              -H "Authorization: token ${BOT_TOKEN}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments \
+              -d "{\"body\":\"🚀 Preview deployment is available at: ${{ steps.deploy.outputs.deployment_url }}\\n\\nThis deployment will be automatically cleaned up when the PR is closed.\"}"
+          fi

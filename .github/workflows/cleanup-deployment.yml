@@ -1,0 +1,64 @@
+name: Cleanup Deployment
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: Extract Issue Number
+        id: extract
+        run: |
+          # Extract issue number from PR title or branch name
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          
+          # Try to extract from branch name first (feature/issue-123)
+          if [[ "$BRANCH" =~ issue-([0-9]+) ]]; then
+            ISSUE_NUMBER="${BASH_REMATCH[1]}"
+          # Otherwise try from PR title
+          elif [[ "$PR_TITLE" =~ issue #([0-9]+) ]]; then
+            ISSUE_NUMBER="${BASH_REMATCH[1]}"
+          else
+            echo "Could not extract issue number"
+            exit 0
+          fi
+          
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          
+      - name: Stop Deployment
+        if: steps.extract.outputs.issue_number
+        run: |
+          ISSUE_NUMBER=${{ steps.extract.outputs.issue_number }}
+          PID_FILE="/tmp/app-issue-${ISSUE_NUMBER}.pid"
+          
+          if [ -f "$PID_FILE" ]; then
+            PID=$(cat "$PID_FILE")
+            echo "Stopping deployment for issue #${ISSUE_NUMBER} (PID: $PID)"
+            
+            # Kill the process
+            kill -9 $PID 2>/dev/null || true
+            
+            # Clean up files
+            rm -f "$PID_FILE"
+            rm -f "/tmp/app-issue-${ISSUE_NUMBER}.log"
+            
+            echo "Deployment cleaned up"
+          else
+            echo "No deployment found for issue #${ISSUE_NUMBER}"
+          fi
+          
+      - name: Comment on PR
+        if: steps.extract.outputs.issue_number
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          
+          curl -X POST \
+            -H "Authorization: token ${BOT_TOKEN}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments \
+            -d "{\"body\":\"🧹 Preview deployment has been cleaned up.\"}"
