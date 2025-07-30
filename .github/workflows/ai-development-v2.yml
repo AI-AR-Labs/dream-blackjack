@@ -122,40 +122,17 @@ jobs:
         
       - name: Commit Changes
         run: |
-          git config --local user.email "claude-code[bot]@users.noreply.github.com"
-          git config --local user.name "claude-code[bot]"
+          git config user.email "robottonik@users.noreply.github.com"
+          git config user.name "robottonik"
           git add -A
           git commit -m "Implement feature for issue #${{ steps.issue.outputs.issue_number }}"
           
       - name: Push Changes
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          GIT_TRACE: 1
-          GIT_CURL_VERBOSE: 1
         run: |
-          # Debug: Check git version and config
-          echo "Git version:"
-          git --version
-          echo "Current user:"
-          whoami
-          echo "Git config:"
-          git config --list | grep -E "(user|credential)" || true
-          echo "Remote before:"
-          git remote -v
-          
-          # Configure the remote URL with authentication (exactly like the local test)
           git remote set-url origin https://robottonik:${BOT_TOKEN}@github.com/${{ github.repository }}.git
-          
-          echo "Remote after:"
-          git remote -v
-          
-          # Test if we can fetch first
-          echo "Testing fetch..."
-          git fetch origin || echo "Fetch failed"
-          
-          # Push the branch
-          echo "Attempting push..."
-          git push origin "feature/issue-${{ steps.issue.outputs.issue_number }}" 2>&1 || echo "Push failed with exit code $?"
+          git push origin "feature/issue-${{ steps.issue.outputs.issue_number }}"
           
       - name: Deploy to Dev Environment
         id: deploy
