@@ -90,7 +90,7 @@ jobs:
           EOF
           
           # Run Claude to generate tests
-          claude --prompt-file generate-tests-prompt.txt
+          claude < generate-tests-prompt.txt
           
       - name: Implement Feature with Claude
         run: |
@@ -109,7 +109,7 @@ jobs:
           EOF
           
           # Run Claude to implement the feature
-          claude --prompt-file implement-feature-prompt.txt
+          claude < implement-feature-prompt.txt
           
       - name: Run Final Tests
         run: npm test
