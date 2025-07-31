@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.set('case sensitive routing', true);
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -9,7 +10,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api', (req, res) => {
-  res.json({ message: 'Dream Skeleton API' });
+  res.json({ message: 'hello world!' });
 });
 
 // 404 handler
