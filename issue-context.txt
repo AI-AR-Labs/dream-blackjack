@@ -1,0 +1,6 @@
+Issue #31: [FEATURE] hello world
+
+## Feature Description
+greet the world
+## Acceptance Criteria
+add a GET to /hello-world that returns hello world
