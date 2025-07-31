@@ -1,0 +1,122 @@
+name: PR Comment Handler
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  handle-pr-comment:
+    # Only run on PR comments, not issue comments
+    if: |
+      github.event.issue.pull_request && 
+      contains(github.event.comment.body, '@ai-assistant')
+    runs-on: self-hosted
+    
+    steps:
+      - name: Get PR details
+        id: pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_DATA=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.issue.number }})
+          echo "head_ref=$(echo "$PR_DATA" | jq -r '.head.ref')" >> $GITHUB_OUTPUT
+          echo "head_sha=$(echo "$PR_DATA" | jq -r '.head.sha')" >> $GITHUB_OUTPUT
+          echo "base_ref=$(echo "$PR_DATA" | jq -r '.base.ref')" >> $GITHUB_OUTPUT
+          
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
+          ref: ${{ steps.pr.outputs.head_ref }}
+          fetch-depth: 0
+          
+      - name: Configure Git
+        run: |
+          git config user.email "robottonik@users.noreply.github.com"
+          git config user.name "robottonik"
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Extract comment instructions
+        id: instructions
+        run: |
+          # Extract the comment body
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          
+          # Remove the @ai-assistant mention and extract instructions
+          INSTRUCTIONS=$(echo "$COMMENT_BODY" | sed 's/@ai-assistant//' | xargs)
+          
+          # Save to file for Claude
+          echo "$INSTRUCTIONS" > instructions.txt
+          
+          echo "instructions<<EOF" >> $GITHUB_OUTPUT
+          echo "$INSTRUCTIONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Process request with Claude
+        run: |
+          # Get current branch context
+          BRANCH_NAME="${{ steps.pr.outputs.head_ref }}"
+          PR_NUMBER="${{ github.event.issue.number }}"
+          
+          # Build the prompt
+          PROMPT="You are responding to a PR comment. The user has requested the following changes:
+
+          ${{ steps.instructions.outputs.instructions }}
+
+          Context:
+          - You are on PR #${PR_NUMBER} on branch '${BRANCH_NAME}'
+          - The PR is targeting the '${{ steps.pr.outputs.base_ref }}' branch
+          - Make the requested changes to the code
+          - Run tests after making changes
+          - If tests fail, fix them
+          
+          IMPORTANT: 
+          - Use the Edit/Write tools to make the actual changes
+          - Focus only on what the user requested
+          - Be concise in your actions"
+          
+          # Run Claude to make the changes
+          claude --dangerously-skip-permissions "$PROMPT"
+          
+      - name: Check for changes
+        id: changes
+        run: |
+          if [[ -n $(git status -s) ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Commit and push changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git add -A
+          git commit -m "Apply requested changes from PR comment
+
+          Requested by: @${{ github.event.comment.user.login }}
+          Comment: ${{ github.event.comment.html_url }}"
+          
+          git push origin ${{ steps.pr.outputs.head_ref }}
+          
+      - name: Comment on PR
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          if [[ "${{ steps.changes.outputs.has_changes }}" == "true" ]]; then
+            COMMENT="✅ I've applied the requested changes to this PR.
+            
+            The changes have been pushed to the branch \`${{ steps.pr.outputs.head_ref }}\`.
+            
+            Please review the changes and let me know if you need any adjustments."
+          else
+            COMMENT="ℹ️ I processed your request but found no changes were needed, or I was unable to make the requested changes.
+            
+            Please check if:
+            - The requested changes might already be implemented
+            - The instructions were clear and specific
+            - The files mentioned exist in this PR"
+          fi
+          
+          gh pr comment ${{ github.event.issue.number }} --body "$COMMENT"

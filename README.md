@@ -43,6 +43,19 @@ Each PR includes:
 - Video demonstration (when applicable)
 - All tests passing
 
+### 4. PR Comment Updates
+You can request changes to any PR by commenting with `@ai-assistant` followed by your instructions:
+
+```
+@ai-assistant please add error handling to the new endpoint
+```
+
+The AI will:
+- Parse your comment
+- Make the requested changes directly on the PR branch
+- Run tests to ensure everything still works
+- Comment back when changes are complete
+
 ## Project Structure
 
 ```
