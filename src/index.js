@@ -9,7 +9,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Dream Skeleton API' });
 });
 
-app.get('/api', (req, res) => {
+app.get('/api/hello-world', (req, res) => {
   res.json({ message: 'hello world!' });
 });
 

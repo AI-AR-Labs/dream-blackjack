@@ -1,0 +1,1 @@
+@AI-Assistant oh, the endpoint should be /api/hello-world
