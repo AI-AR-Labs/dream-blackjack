@@ -1,0 +1,7 @@
+Issue #28: [FEATURE] hello world
+
+## Feature Description
+greet the world
+
+## Acceptance Criteria
+add a GET endpoint that returns hello world!
