@@ -68,16 +68,36 @@ jobs:
           - You are on PR #${PR_NUMBER} on branch '${BRANCH_NAME}'
           - The PR is targeting the '${{ steps.pr.outputs.base_ref }}' branch
           - Make the requested changes to the code
-          - Run tests after making changes
-          - If tests fail, fix them
+          - If the changes affect functionality, update or add tests as needed
+          - Run 'npm test' after making changes to ensure they pass
+          - If tests fail, fix them before completing
           
           IMPORTANT: 
           - Use the Edit/Write tools to make the actual changes
+          - Use the Bash tool to run 'npm test' and verify tests pass
+          - If tests need updates, modify them to match the new behavior
           - Focus only on what the user requested
           - Be concise in your actions"
           
           # Run Claude to make the changes
           claude --dangerously-skip-permissions "$PROMPT"
+          
+      - name: Run tests to verify changes
+        run: |
+          npm test || {
+            echo "Tests failed after AI changes. Running Claude to fix..."
+            
+            PROMPT="The tests are failing after the changes. Please fix the tests to pass.
+            
+            Run 'npm test' to see the failures, then fix them.
+            
+            IMPORTANT: Use Edit/Write tools to fix the failing tests."
+            
+            claude --dangerously-skip-permissions "$PROMPT"
+            
+            # Run tests again
+            npm test
+          }
           
       - name: Check for changes
         id: changes
