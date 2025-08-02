@@ -1,0 +1,4 @@
+Issue #35: [FEATURE] prime number checker
+
+## Feature Description
+A GET api endpoint /prime/:number that returns true or false based on if the :number is prime.
