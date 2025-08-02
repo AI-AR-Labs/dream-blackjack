@@ -1,0 +1,1 @@
+@AI-Assistant the root should be /api/

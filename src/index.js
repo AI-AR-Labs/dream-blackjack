@@ -23,7 +23,7 @@ function isPrime(n) {
   return true;
 }
 
-app.get('/prime/:number', (req, res) => {
+app.get('/api/prime/:number', (req, res) => {
   const input = req.params.number;
   
   if (input === '') {
